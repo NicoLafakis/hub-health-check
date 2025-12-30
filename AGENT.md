@@ -2,128 +2,234 @@
 
 ## Project Overview
 
-**HubCheck** is a HubSpot CRM Health Auditor application that analyzes a HubSpot portal and provides health scores across multiple categories. Users authenticate with a HubSpot Private App Token (PAT) to run audits on their CRM data.
+**HubCheck** is a full-stack HubSpot CRM Health Auditor application that analyzes a HubSpot portal and provides health scores across multiple categories. Users authenticate with a HubSpot Private App Token (PAT) to run comprehensive audits on their CRM data.
 
-## Current State
+## Current State: Production Ready
 
-This is a **prototype/mockup** with simulated data. The current implementation:
-- Contains a fully functional React UI
-- Simulates audit results with random data generation
-- Does NOT yet connect to the actual HubSpot API
-- Validates token format (must start with `pat-`)
+The application is fully implemented with:
+- Express.js backend with real HubSpot API integration
+- React frontend with Vite and Tailwind CSS
+- PDF and Markdown export functionality
+- Railway deployment configuration
+- Comprehensive scope validation with missing scope reporting
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 18+ |
-| Styling | Tailwind CSS |
+| Frontend | React 18, Vite 5, Tailwind CSS 3 |
 | Icons | Lucide React |
-| Backend | Planned: Flask or Node.js (not yet implemented) |
+| Backend | Express.js, Node.js 18+ |
+| HubSpot SDK | @hubspot/api-client |
+| PDF Generation | PDFKit |
+| Logging | Winston |
+| Deployment | Railway (Nixpacks) |
 
-## Application Architecture
+## Project Structure
 
-### State Management
-- `token` - HubSpot Private App Token input
-- `isAuditing` - Loading state during audit
-- `results` - Audit results object
-- `error` - Error messages
-- `activeTab` - Current view ('dashboard' or 'details')
-- `selectedCategory` - Selected category for detail view
+```
+hub-health-check/
+├── client/                     # React frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Sidebar.jsx        # Navigation & token input
+│   │   │   ├── Header.jsx         # Top header with export button
+│   │   │   ├── EmptyState.jsx     # Initial state before audit
+│   │   │   ├── LoadingState.jsx   # Audit in progress UI
+│   │   │   ├── Dashboard.jsx      # Main results dashboard
+│   │   │   ├── CategoryDetails.jsx # Deep dive view
+│   │   │   ├── ScopeWarning.jsx   # Missing scopes alert
+│   │   │   └── ExportModal.jsx    # PDF/Markdown export
+│   │   ├── hooks/
+│   │   │   └── useAudit.js        # Audit state management
+│   │   ├── lib/
+│   │   │   └── api.js             # API client functions
+│   │   ├── App.jsx                # Main application
+│   │   ├── main.jsx               # Entry point
+│   │   └── index.css              # Tailwind styles
+│   ├── public/
+│   │   └── favicon.svg
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── package.json
+├── server/                     # Express backend
+│   ├── src/
+│   │   ├── routes/
+│   │   │   ├── audit.js           # Audit API endpoints
+│   │   │   └── export.js          # PDF/MD export endpoints
+│   │   ├── services/
+│   │   │   ├── hubspot.js         # HubSpot API client
+│   │   │   └── auditEngine.js     # Audit logic
+│   │   ├── utils/
+│   │   │   └── logger.js          # Winston logger
+│   │   └── index.js               # Express server
+│   └── package.json
+├── package.json                # Root monorepo config
+├── railway.json                # Railway deployment config
+├── nixpacks.toml               # Build configuration
+├── .gitignore
+├── .env.example
+├── README.md
+└── AGENT.md                    # This file
+```
 
-### Audit Categories
-1. **Contact Hygiene** - Email completeness, duplicates, engagement rates
-2. **Pipeline Health** - Stale deals, missing close dates, amount accuracy
-3. **Data Integrity** - Orphaned records, field fill rates, sync errors
+## Audit Categories
 
-### Health Status Types
-- `healthy` (green) - No issues
-- `warning` (amber) - Needs attention
-- `danger` (red) - Critical issues
+### 1. Contact Hygiene
+- Missing email addresses
+- Missing names
+- Potential duplicate detection (same domain + similar names)
+- Lifecycle stage coverage
 
-### Required HubSpot Scopes
+### 2. Pipeline Health
+- Stale deals (no activity in 30 days)
+- Missing close dates on open deals
+- Missing deal amounts
+- Unassigned deals
+- Total pipeline value
+
+### 3. Data Integrity
+- Orphaned contacts (no company association)
+- Contact to company ratio
+- Recent deal activity
+- Data freshness
+
+### 4. Company Data Quality
+- Industry field fill rate
+- Domain fill rate
+- Employee count fill rate
+- Annual revenue fill rate
+- Location data fill rate
+
+### 5. Engagement & Growth
+- Lead status coverage
+- Deal conversion rate
+- Monthly contact growth
+
+### 6. Data Quality Score
+- Contact data completeness
+- Company data completeness
+- Deal data completeness
+- Overall quality score
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `POST /api/audit/validate` | POST | Validate token and return scope info |
+| `POST /api/audit/run` | POST | Execute full CRM audit |
+| `GET /api/audit/scopes` | GET | List all required/optional scopes |
+| `POST /api/export/pdf` | POST | Generate PDF report |
+| `POST /api/export/markdown` | POST | Generate Markdown report |
+| `GET /api/health` | GET | Health check for Railway |
+
+## Required HubSpot Scopes
+
 ```
 crm.objects.contacts.read
 crm.objects.companies.read
 crm.objects.deals.read
 crm.schemas.contacts.read
+crm.schemas.companies.read
+crm.schemas.deals.read
 crm.objects.owners.read
 ```
 
-## Key Files
+## Optional Scopes (Enhanced Features)
 
-| File | Description |
-|------|-------------|
-| `hub-health-app.md` | Main React component (App.jsx content) |
-| `AGENT.md` | This file - project documentation |
+```
+crm.objects.custom.read
+crm.objects.marketing_events.read
+crm.objects.quotes.read
+crm.objects.line_items.read
+crm.lists.read
+automation.workflows.read
+forms.read
+files.read
+```
 
-## UI Components
+## Development Commands
 
-### Views
-1. **Empty State** - Shown before audit, prompts for token input
-2. **Loading State** - Animated spinner during audit scan
-3. **Dashboard** - Overall health score + category cards
-4. **Details** - Deep dive table for selected category
+```bash
+# Install all dependencies
+npm run install:all
 
-### Layout
-- Fixed left sidebar (320px) - Connection panel, navigation
-- Main content area - Dashboard/Details views
-- Sticky header - Breadcrumbs, record count
+# Start development (both client and server)
+npm run dev
 
-## Development Roadmap
+# Start client only
+npm run dev:client
 
-### Phase 1: Project Setup
-- [ ] Initialize React project with Vite or Create React App
-- [ ] Install dependencies (Tailwind CSS, Lucide React)
-- [ ] Extract component from hub-health-app.md into proper structure
+# Start server only
+npm run dev:server
 
-### Phase 2: Backend Development
-- [ ] Create Flask/Node.js backend
-- [ ] Implement HubSpot API integration
-- [ ] Build real audit logic for each category
-- [ ] Add proper error handling and rate limiting
+# Build for production
+npm run build
 
-### Phase 3: Frontend Enhancements
-- [ ] Connect frontend to real backend API
-- [ ] Add authentication/session management
-- [ ] Implement "Action Plan" feature
-- [ ] Add export functionality for reports
+# Start production server
+npm start
+```
 
-### Phase 4: Polish
-- [ ] Add unit and integration tests
-- [ ] Optimize performance
-- [ ] Add accessibility features
-- [ ] Documentation and deployment
+## Key Features Implemented
+
+### Scope Validation
+When a token is missing required scopes, the UI displays:
+- A prominent warning banner
+- List of each missing scope
+- Link to HubSpot documentation on adding scopes
+
+### Export Functionality
+- **PDF**: Formatted report with health score visualization, category breakdowns, and recommendations
+- **Markdown**: Plain text format with tables, collapsible affected records sections
+
+### Health Scoring Algorithm
+- Each check is scored as: healthy (100), warning (60), danger (20)
+- Category score = average of all check scores
+- Overall score = average of all category scores
 
 ## Design System
 
 ### Colors
 - Primary: `#FF7A59` (HubSpot Orange)
-- Dark background: `#2D3E50`
-- Success: Emerald
-- Warning: Amber
-- Danger: Rose
+- Dark: `#2D3E50` (Sidebar background)
+- Success: Emerald (`#10B981`)
+- Warning: Amber (`#F59E0B`)
+- Danger: Rose (`#EF4444`)
 
-### Typography
-- Font: System sans-serif
-- Heavy use of uppercase tracking for labels
-- Score displays use extra-bold weights
+### Status Classes
+- `status-healthy`: Green indicators
+- `status-warning`: Amber indicators
+- `status-danger`: Red indicators
+- `status-info`: Blue indicators
 
-## API Notes (Future Implementation)
+## Deployment (Railway)
 
-HubSpot API endpoints to integrate:
-- `GET /crm/v3/objects/contacts` - Fetch contacts
-- `GET /crm/v3/objects/companies` - Fetch companies
-- `GET /crm/v3/objects/deals` - Fetch deals
-- `GET /crm/v3/properties/{objectType}` - Get property definitions
-- `GET /crm/v3/owners` - Get owners
+The app is configured for Railway deployment:
 
-Rate limits: 100 requests per 10 seconds (Private App)
+1. Push to GitHub
+2. Connect repository to Railway
+3. Railway auto-detects `nixpacks.toml`
+4. Build: Installs deps, builds client
+5. Start: Runs Express server serving static files
 
-## Security Considerations
+Environment variables are optional - PORT is auto-configured by Railway.
 
-- Tokens processed locally (current claim - maintain this)
-- Never store tokens persistently
-- Use HTTPS for all API calls
-- Validate token format before API calls
-- Handle API errors gracefully without exposing sensitive info
+## Security Notes
+
+- Tokens are never stored or logged
+- All HubSpot API calls are read-only
+- No data persisted on server
+- CORS enabled for local development
+- Helmet.js for security headers in production
+
+## Future Enhancement Ideas
+
+- [ ] Historical audit comparison
+- [ ] Scheduled automated audits
+- [ ] Email report delivery
+- [ ] Custom audit rules
+- [ ] Integration with Slack/Teams notifications
+- [ ] Advanced duplicate detection with ML
+- [ ] Bulk data cleanup recommendations
